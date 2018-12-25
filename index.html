@@ -28,6 +28,9 @@
                         <label>Enter code here</label>
                     </div>
                 </td>
+                <td><div>
+                    <label>Vector Input here</label>
+                </div> </td>
                 <td>
                     <div>
                         <label>Parsed code here</label>
@@ -37,9 +40,29 @@
             <tr>
                 <td>
                     <div class="textAreaWrapper">
-                        <textarea id="codePlaceholder" title="Enter code here"></textarea>
+                        <textarea id="codePlaceholder" title="Enter code here">
+function foo(x, y, z){
+    let a = x + 1;
+    let b = a + y;
+    let c = 0;
+
+    if (b < z) {
+        c = c + 5;
+    } else if (b < z * 2) {
+        c = c + x + 5;
+    } else {
+        c = c + z + 5;
+    }
+
+    return c;
+}
+
+                        </textarea>
                     </div>
                 </td>
+                <td><div class="textAreaWrapper">
+                    <textarea id="inputVector" title="Input Vector">1,2,3</textarea>
+                </div></td>
                 <td>
                     <div class="textAreaWrapper">
                         <textarea id="parsedCode" title="Parse code"></textarea>
@@ -53,10 +76,17 @@
                     </div>
                 </td>
                 <td>
+                    <div>
+                        <button id="codeFlowButton">Create Flow Tree</button>
+                    </div>
+                </td>
+                <td>
                 </td>
             </tr>
         </table>
-
+        <div>
+            <p id="flowChart"></p>
+        </div>
         <script src="dist/bundle.js"></script>
     </body>
 </html>
