@@ -21,7 +21,7 @@ $(document).ready(function () {
     });
     $('#codeFlowButton').click(() => {
         let codeToParse = $('#codePlaceholder').val();
-        let flowTree = get_flowTree(codeToParse,JSON.parse('[' + $('#inputVector').val() + ']').reverse());
+        let flowTree = get_flowTree(codeToParse,JSON.parse('[' + $('#inputVector').val() + ']'));
         let shapesTree = js2flowchart.createSVGRender().buildShapesTree(flowTree);
         const shapesTreeEditor = js2flowchart.createShapesTreeEditor(shapesTree);
         applyFillers(shapesTreeEditor);

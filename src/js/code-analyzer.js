@@ -31,7 +31,9 @@ function updateEnv(env, key, value) {
 }
 
 function updateArrayEnv(env, key, index, value) {
-    env.env[key][index] = value;
+    if (env.env[key] != null && env.env[key].constructor === Array)
+        env.env[key][index] = value;
+    else throw new TypeError('bad');
     env.oldEnv != null && env.oldEnv.env[key] != null ? updateArrayEnv(env.oldEnv, key, value) : null;
 }
 
@@ -63,13 +65,20 @@ function isWhileStatement(node) {
     return node.type === 'Loop' && node.subType === 'WhileStatement';
 }
 
+let stack_limit = 20;
+
 function handleWhileStatement(node, env) {
     let parsedExpr = parseCode_with_source(node.name).body[0].expression;
     let envCopy = JSON.parse(JSON.stringify(env));
     envCopy.oldEnv = env;
     if (staticeval(parsedExpr, env.env)) {
         handleBody(node, envCopy);
-        handleNode(node, env);
+        if (stack_limit > 0){
+            stack_limit--;
+            handleNode(node, env);
+            stack_limit++;
+        }
+        else throw new Error('exceeded stack limit');
     }
 }
 
@@ -94,7 +103,7 @@ function handleNode(node, env) {
 
 function get_flowTree(codeToParse, inputVector) {
     const flowTree = js2flowchart.convertCodeToFlowTree(codeToParse);
-    handleNode(flowTree, {env: {}, inputVector: inputVector});
+    handleNode(flowTree, {env: {}, inputVector: inputVector.reverse()});
     return flowTree;
 }
 
