@@ -1,39 +1,45 @@
 {
-    "name": "sample-project",
-    "version": "1.0.0",
-    "description": "",
-    "main": "index.js",
-    "scripts": {
-        "start": "npm run start:dev",
-        "start:dev": "webpack --watch",
-        "test:watch": "mocha-webpack --watch",
-        "test": "mocha-webpack --webpack-config webpack.test.config.js --reporter=json",
-        "coverage": "cross-env NODE_ENV=coverage nyc --reporter=json-summary npm run test",
-        "lint": "eslint -f json -o ./lint/eslint-report.json src"
-    },
-    "nyc": {
-        "include": [
-            "src/**/*.js"
-        ],
-        "instrument": false,
-        "sourceMap": false
-    },
-    "author": "",
-    "license": "ISC",
-    "dependencies": {
-        "esprima": "^4.0.0",
-        "jquery": "^3.3.1",
-        "js2flowchart": "^1.1.7",
-        "static-eval": "^2.0.0"
-    },
-    "devDependencies": {
-        "cross-env": "^5.2.0",
-        "eslint": "^5.0.1",
-        "istanbul-instrumenter-loader": "^3.0.1",
-        "mocha": "^5.2.0",
-        "mocha-webpack": "^2.0.0-beta.0",
-        "nyc": "^12.0.2",
-        "webpack": "^4.12.2",
-        "webpack-cli": "^2.1.4"
-    }
+  "name": "sample-project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "npm run start:dev",
+    "start:dev": "webpack --watch",
+    "test:watch": "mocha-webpack --watch",
+    "test": "mocha-webpack --webpack-config webpack.test.config.js --reporter=json",
+    "coverage": "cross-env NODE_ENV=coverage nyc --reporter=json-summary npm run test",
+    "lint": "eslint -f json -o ./lint/eslint-report.json src"
+  },
+  "nyc": {
+    "include": [
+      "src/**/*.js"
+    ],
+    "instrument": false,
+    "sourceMap": false
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "d3-graphviz": "^2.6.0",
+    "esgraph": "^0.3.0",
+    "esprima": "^4.0.0",
+    "flowchart": "^1.2.0",
+    "flowchart.js": "^1.11.3",
+    "graphdracula": "^1.2.1",
+    "jquery": "^3.3.1",
+    "js2flowchart": "^1.1.7",
+    "static-eval": "^2.0.0",
+    "viz.js": "^2.1.2"
+  },
+  "devDependencies": {
+    "cross-env": "^5.2.0",
+    "eslint": "^5.0.1",
+    "istanbul-instrumenter-loader": "^3.0.1",
+    "mocha": "^5.2.0",
+    "mocha-webpack": "^2.0.0-beta.0",
+    "nyc": "^12.0.2",
+    "webpack": "^4.12.2",
+    "webpack-cli": "^2.1.4"
+  }
 }

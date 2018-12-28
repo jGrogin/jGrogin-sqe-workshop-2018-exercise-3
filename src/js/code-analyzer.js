@@ -58,7 +58,8 @@ function handleIfStatement(node, env) {
     let parsedExpr = parseCode_with_source(node.name).body[0].expression;
     let envCopy = JSON.parse(JSON.stringify(env));
     envCopy.oldEnv = env;
-    staticeval(parsedExpr, env.env) ? handleNode(node.body[0], envCopy) : node.body.length > 1 ? handleNode(node.body[1], envCopy) : null;
+    staticeval(parsedExpr, env.env) ? node.body.forEach(child => child.key === 'consequent' ? handleNode(child, envCopy) : null)
+        : node.body.forEach(child => child.key === 'alternate' ? handleNode(child, envCopy) : null);
 }
 
 function isWhileStatement(node) {
@@ -73,7 +74,7 @@ function handleWhileStatement(node, env) {
     envCopy.oldEnv = env;
     if (staticeval(parsedExpr, env.env)) {
         handleBody(node, envCopy);
-        if (stack_limit > 0){
+        if (stack_limit > 0) {
             stack_limit--;
             handleNode(node, env);
             stack_limit++;
@@ -102,9 +103,103 @@ function handleNode(node, env) {
 }
 
 function get_flowTree(codeToParse, inputVector) {
-    const flowTree = js2flowchart.convertCodeToFlowTree(codeToParse);
+    const flowTreeBuilder = js2flowchart.createFlowTreeBuilder();
+    // flowTreeBuilder.setAbstractionLevel(['Function', 'VariableDeclarator', 'AssignmentExpression', 'Conditional', 'Loop']);
+    let flowTree = flowTreeBuilder.build(codeToParse);
     handleNode(flowTree, {env: {}, inputVector: inputVector.reverse()});
+    convert_flowTree(flowTree);
+    console.log(flowTree);
     return flowTree;
 }
 
-export {parseCode, get_flowTree};
+function convert_flowTree(flowTree) {
+    convertProgram(flowTree);
+}
+
+function convertProgram(node) {
+    if (node.body[0].type === 'Function')
+        convertFunction(node.body[0]);
+}
+
+function convertFunction(node) {
+    mergeExpressions(node);
+}
+
+function mergeNoneConditional(merged, x) {
+    let newNode = merged.pop();
+    if (newNode == null) merged.push(x);
+    else if (isNonConditional(newNode)) {
+        newNode.name += '\n' + x.name;
+        merged.push(newNode);
+    }
+    else {
+        // newNode.body.forEach(e => e.body.push(x));
+        merged.push(newNode);
+        merged.push(x);
+
+    }
+}
+
+function isNonConditional(x) {
+    return !isIfStatement(x) && !isWhileStatement(x);
+}
+
+function mergeBody(node) {
+    let merged = [];
+    node.body.forEach(x => {
+        if (isNonConditional(x)) {
+            mergeNoneConditional(merged, x);
+        }
+        else {
+            let consequent = {body: x.body.filter(x => x.key === 'consequent' || x.key === 'body')};
+            let alternate = {body: x.body.filter(x => x.key === 'alternate')};
+            mergeBody(consequent);
+            mergeBody(alternate);
+            x.body = [...consequent.body, ...alternate.body];
+            merged.push(x);
+        }
+    });
+    node.body = merged;
+}
+
+function mergeExpressions(node) {
+    if (node.body.length > 0) {
+        mergeBody(node);
+
+    }
+}
+
+function cfgNodes(functionNode, cfg) {
+    functionNode.body.forEach(x => {
+        x.n = 'n' + cfg.n++;
+        if (isNonConditional(x))
+            cfg.nodes += x.n + '[label="-' + cfg.n + '-\n' + x.name + '", shape="box"]\n';
+        else {
+            cfg.nodes += x.n + '[label="-' + cfg.n + '-\n' + x.name + '", shape="diamond"]\n';
+            cfgNodes(x, cfg);
+        }
+    });
+}
+
+function cfgEdges(functionNode, cfg) {
+    let prev = null;
+    functionNode.body.forEach(x => {
+        if (prev != null)
+            cfg.edges += '\n' + prev + '->' + x.n + '[' + (x.key === 'consequent' ? 'label="T"' : x.key === 'alternate' ? 'label="F"' : '') + ']';
+        if (!isNonConditional(x)) {
+            prev = cfgEdges(x, cfg);
+        }
+        else
+            prev = x.n;
+    });
+    return prev;
+}
+
+function make_cfg(functionNode) {
+    let cfg = {nodes: '', edges: '', n: 0}
+    cfgNodes(functionNode, cfg);
+    cfgEdges(functionNode, cfg);
+    return cfg.nodes + '\n' + cfg.edges;
+}
+
+export {parseCode, get_flowTree, make_cfg};
