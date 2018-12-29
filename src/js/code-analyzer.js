@@ -102,13 +102,17 @@ function handleNode(node, env) {
     }
 }
 
-function get_flowTree(codeToParse, inputVector) {
+function buildFlowTree(codeToParse) {
     const flowTreeBuilder = js2flowchart.createFlowTreeBuilder();
     // flowTreeBuilder.setAbstractionLevel(['Function', 'VariableDeclarator', 'AssignmentExpression', 'Conditional', 'Loop']);
     let flowTree = flowTreeBuilder.build(codeToParse);
+    return flowTree;
+}
+
+function get_flowTree(codeToParse, inputVector) {
+    let flowTree = buildFlowTree(codeToParse);
     handleNode(flowTree, {env: {}, inputVector: inputVector.reverse()});
     convert_flowTree(flowTree);
-    console.log(flowTree);
     return flowTree;
 }
 
@@ -117,8 +121,7 @@ function convert_flowTree(flowTree) {
 }
 
 function convertProgram(node) {
-    if (node.body[0].type === 'Function')
-        convertFunction(node.body[0]);
+    node.body.forEach(x => (x.type === 'Function') ? convertFunction(x) : null);
 }
 
 function convertFunction(node) {
@@ -133,7 +136,6 @@ function mergeNoneConditional(merged, x) {
         merged.push(newNode);
     }
     else {
-        // newNode.body.forEach(e => e.body.push(x));
         merged.push(newNode);
         merged.push(x);
 
@@ -173,13 +175,21 @@ function mergeExpressions(node) {
     }
 }
 
+function cfgReturnNode(cfg, x) {
+    cfg.nodes += x.n + '[label="", shape="circle" style=filled fillcolor=' + (x.inPath ? '"#00ff10"' : '"#ffffff"') + ']\n';
+    cfg.nodes += 'return' + '[label="-' + cfg.n + '-\n' + x.name + '", shape="box" style=filled fillcolor=' + (x.inPath ? '"#00ff10"' : '"#ffffff"') + ']\n';
+    cfg.edges += x.n + '->return []';
+}
+
+function isReturnNode(x) {
+    return x.type === 'ReturnStatement';
+}
+
 function cfgNodes(functionNode, cfg) {
     functionNode.body.forEach(x => {
         x.n = 'n' + cfg.n++;
-        if (x.type === 'ReturnStatement') {
-            cfg.nodes += x.n + '[label="", shape="circle" style=filled fillcolor=' + (x.inPath ? '"#00ff10"' : '"#ffffff"') + ']\n';
-            cfg.nodes += 'return' + '[label="-' + cfg.n + '-\n' + x.name + '", shape="box" style=filled fillcolor=' + (x.inPath ? '"#00ff10"' : '"#ffffff"') + ']\n';
-            cfg.edges += x.n + '->return []';
+        if (isReturnNode(x)) {
+            cfgReturnNode(cfg, x);
         } else if (isNonConditional(x))
             cfg.nodes += x.n + '[label="-' + cfg.n + '-\n' + x.name + '", shape="box" style=filled fillcolor=' + (x.inPath ? '"#00ff10"' : '"#ffffff"') + ']\n';
         else {
@@ -189,39 +199,6 @@ function cfgNodes(functionNode, cfg) {
     });
 }
 
-//
-// function cfgEdge(x, cfg, prev = null, leaves) {
-//     if (prev != null)
-//         cfg.edges += '\n' + prev + '->' + x.n + '[' + ']';
-//     prev = x.n;
-//     if (isIfStatement(x)) {
-//         x.body.forEach(y => {
-//             cfg.edges += '\n' + x.n + '->' + y.n + '['
-//                 + (y.key === 'consequent' ? 'label="T"' : y.key === 'alternate' ? 'label="F"' : '') + ']';
-//             leaves.push({node: cfgEdge(y, cfg, null, leaves), label: ''});
-//         });
-//         prev = null;
-//     }
-//     else if (isWhileStatement(x)) {
-//         cfgEdges(x, cfg, null, leaves);
-//         console.log(JSON.stringify(leaves));
-//         // cfg.edges += '\n' + x.n + '->' + x.body[0].n + '['
-//         //     + ('label="T"') + ']';
-//         // leaves.push({node: cfgEdge(x.body[0], cfg, null, leaves), label: 'F'});
-//     }
-//     return prev;
-// }
-//
-// function cfgEdges(functionNode, cfg, prev = null, leaves = []) {
-//     functionNode.body.forEach(x => {
-//         if (leaves.length > 0)
-//             leaves.filter(l => l.node != null && l.label != null).forEach(l => cfg.edges += '\n' +
-//                 l.node + '->' + x.n + '[label="' + l.label + '"]');
-//         leaves = [];
-//         prev = cfgEdge(x, cfg, prev, leaves);
-//     });
-//     return prev;
-// }
 function cfgBody(x, cfg) {
     return cfgEdges(x, cfg);
 }
@@ -251,7 +228,6 @@ function cfgWhile(x, cfg) {
     let body = cfgBody(bodyWrapper(x.body), cfg);
     cfgConditionalHandler(body, x, 'while', res, cfg);
     res.forEach(n => {
-        console.log(n);
         addEdge(n.node, x.n, n.label + '\nwhile', cfg);
     });
     res.length = 0;
@@ -286,7 +262,6 @@ function cfgEdge(x, cfg) {
         return [{node: x.n, label: ''}];
     }
     else return cfgConditional(x, cfg);
-    return [];
 }
 
 function cfgEdges(functionNode, cfg) {
@@ -300,10 +275,13 @@ function cfgEdges(functionNode, cfg) {
 }
 
 function make_cfg(functionNode) {
-    let cfg = {nodes: '', edges: '', n: 0}
+    let cfg = {nodes: '', edges: '', n: 0};
     cfgNodes(functionNode, cfg);
     cfgEdges(functionNode, cfg);
     return cfg.nodes + '\n' + cfg.edges;
 }
 
-export {parseCode, get_flowTree, make_cfg};
+export {parseCode, get_flowTree, make_cfg, handleDeclaration, buildFlowTree, convert_flowTree, mergeNoneConditional,
+    cfgNodes, cfgEdges
+
+};
