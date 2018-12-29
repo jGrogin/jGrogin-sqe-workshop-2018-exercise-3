@@ -176,7 +176,11 @@ function mergeExpressions(node) {
 function cfgNodes(functionNode, cfg) {
     functionNode.body.forEach(x => {
         x.n = 'n' + cfg.n++;
-        if (isNonConditional(x))
+        if (x.type === 'ReturnStatement') {
+            cfg.nodes += x.n + '[label="", shape="circle" style=filled fillcolor=' + (x.inPath ? '"#00ff10"' : '"#ffffff"') + ']\n';
+            cfg.nodes += 'return' + '[label="-' + cfg.n + '-\n' + x.name + '", shape="box" style=filled fillcolor=' + (x.inPath ? '"#00ff10"' : '"#ffffff"') + ']\n';
+            cfg.edges += x.n + '->return []';
+        } else if (isNonConditional(x))
             cfg.nodes += x.n + '[label="-' + cfg.n + '-\n' + x.name + '", shape="box" style=filled fillcolor=' + (x.inPath ? '"#00ff10"' : '"#ffffff"') + ']\n';
         else {
             cfg.nodes += x.n + '[label="-' + cfg.n + '-\n' + x.name + '", shape="diamond" style=filled fillcolor=' + (x.inPath ? '"#00ff10"' : '"#ffffff"') + ']\n';
