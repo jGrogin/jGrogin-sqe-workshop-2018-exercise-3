@@ -46,10 +46,10 @@ $(document).ready(function () {
         let flowTree = get_flowTree(codeToParse, JSON.parse('[' + $('#inputVector').val() + ']'));
         let shapesTree = js2flowchart.createSVGRender().buildShapesTree(flowTree);
         const shapesTreeEditor = js2flowchart.createShapesTreeEditor(shapesTree);
-        let cfg = esgraph(parseCode(' let a =   1;\n' +
-            '    let b = 2;\n' +
-            '    let c = 0;\n'));
-        let gr = esgraph.dot(cfg);
+        // let cfg = esgraph(parseCode(' let a =   1;\n' +
+        //     '    let b = 2;\n' +
+        //     '    let c = 0;\n'));
+        // let gr = esgraph.dot(cfg);
         // let v = viz.parse(gr);
         applyFillers(shapesTreeEditor);
         // console.log(shapesTree);
@@ -58,11 +58,11 @@ $(document).ready(function () {
         // console.log(shapesTree.getShapes()[10]);
         // console.log(shapesTree.getShapes()[10]);
         // shapesTree.getShapes().pop(); shapesTree.getShapes()[9].state.connectionArrow = shapesTree.getShapes()[0];
-        document.getElementById('flowChart').innerHTML = shapesTree.print().replaceAllArr([
-            'font-family="monospace" font-size="13" fill="#222">+', 'font-family="monospace" font-size="13" fill="#222">-'
-        ], [
-            'font-family="monospace" font-size="13" fill="#222">T', 'font-family="monospace" font-size="13" fill="#222">F'
-        ]);
+        // document.getElementById('flowChart').innerHTML = shapesTree.print().replaceAllArr([
+        //     'font-family="monospace" font-size="13" fill="#222">+', 'font-family="monospace" font-size="13" fill="#222">-'
+        // ], [
+        //     'font-family="monospace" font-size="13" fill="#222">T', 'font-family="monospace" font-size="13" fill="#222">F'
+        // ]);
         // document.getElementById('flowChart').getElementsByTagName('tspan').item(1).setAttribute('dy', '1.2em');
         // console.log(document.getElementById('flowChart').getElementsByTagName('tspan'));
         $('#parsedCode').val(document.getElementById('flowChart').innerHTML);
@@ -87,9 +87,11 @@ $(document).ready(function () {
         // console.log(temp.getElementsByTagName('g'));
         // document.getElementById('flowChart').innerHTML = temp.innerHTML;
         // console.log(cfg);
-        console.log(gr);console.log(make_cfg(flowTree.body[0]));
+        // console.log(gr);
+        let fc = make_cfg(flowTree.body[0])
+        console.log(fc);
         d3.graphviz('#flowChart')
-            .renderDot('digraph { '+make_cfg(flowTree.body[0]) + ' }');
+            .renderDot('digraph { ' + fc + ' }');
 
 
     });

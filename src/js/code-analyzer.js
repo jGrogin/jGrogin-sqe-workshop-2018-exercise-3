@@ -79,7 +79,7 @@ function handleWhileStatement(node, env) {
             handleNode(node, env);
             stack_limit++;
         }
-        else throw new Error('exceeded stack limit');
+        else stack_limit = 20;//throw new Error('exceeded stack limit');
     }
 }
 
@@ -144,6 +144,10 @@ function isNonConditional(x) {
     return !isIfStatement(x) && !isWhileStatement(x);
 }
 
+function bodyWrapper(body) {
+    return {body: body};
+}
+
 function mergeBody(node) {
     let merged = [];
     node.body.forEach(x => {
@@ -151,8 +155,8 @@ function mergeBody(node) {
             mergeNoneConditional(merged, x);
         }
         else {
-            let consequent = {body: x.body.filter(x => x.key === 'consequent' || x.key === 'body')};
-            let alternate = {body: x.body.filter(x => x.key === 'alternate')};
+            let consequent = bodyWrapper(x.body.filter(x => x.key === 'consequent' || x.key === 'body'));
+            let alternate = bodyWrapper(x.body.filter(x => x.key === 'alternate'));
             mergeBody(consequent);
             mergeBody(alternate);
             x.body = [...consequent.body, ...alternate.body];
@@ -173,26 +177,122 @@ function cfgNodes(functionNode, cfg) {
     functionNode.body.forEach(x => {
         x.n = 'n' + cfg.n++;
         if (isNonConditional(x))
-            cfg.nodes += x.n + '[label="-' + cfg.n + '-\n' + x.name + '", shape="box"]\n';
+            cfg.nodes += x.n + '[label="-' + cfg.n + '-\n' + x.name + '", shape="box" style=filled fillcolor=' + (x.inPath ? '"#00ff10"' : '"#ffffff"') + ']\n';
         else {
-            cfg.nodes += x.n + '[label="-' + cfg.n + '-\n' + x.name + '", shape="diamond"]\n';
+            cfg.nodes += x.n + '[label="-' + cfg.n + '-\n' + x.name + '", shape="diamond" style=filled fillcolor=' + (x.inPath ? '"#00ff10"' : '"#ffffff"') + ']\n';
             cfgNodes(x, cfg);
         }
     });
 }
 
-function cfgEdges(functionNode, cfg) {
-    let prev = null;
-    functionNode.body.forEach(x => {
-        if (prev != null)
-            cfg.edges += '\n' + prev + '->' + x.n + '[' + (x.key === 'consequent' ? 'label="T"' : x.key === 'alternate' ? 'label="F"' : '') + ']';
-        if (!isNonConditional(x)) {
-            prev = cfgEdges(x, cfg);
-        }
-        else
-            prev = x.n;
+//
+// function cfgEdge(x, cfg, prev = null, leaves) {
+//     if (prev != null)
+//         cfg.edges += '\n' + prev + '->' + x.n + '[' + ']';
+//     prev = x.n;
+//     if (isIfStatement(x)) {
+//         x.body.forEach(y => {
+//             cfg.edges += '\n' + x.n + '->' + y.n + '['
+//                 + (y.key === 'consequent' ? 'label="T"' : y.key === 'alternate' ? 'label="F"' : '') + ']';
+//             leaves.push({node: cfgEdge(y, cfg, null, leaves), label: ''});
+//         });
+//         prev = null;
+//     }
+//     else if (isWhileStatement(x)) {
+//         cfgEdges(x, cfg, null, leaves);
+//         console.log(JSON.stringify(leaves));
+//         // cfg.edges += '\n' + x.n + '->' + x.body[0].n + '['
+//         //     + ('label="T"') + ']';
+//         // leaves.push({node: cfgEdge(x.body[0], cfg, null, leaves), label: 'F'});
+//     }
+//     return prev;
+// }
+//
+// function cfgEdges(functionNode, cfg, prev = null, leaves = []) {
+//     functionNode.body.forEach(x => {
+//         if (leaves.length > 0)
+//             leaves.filter(l => l.node != null && l.label != null).forEach(l => cfg.edges += '\n' +
+//                 l.node + '->' + x.n + '[label="' + l.label + '"]');
+//         leaves = [];
+//         prev = cfgEdge(x, cfg, prev, leaves);
+//     });
+//     return prev;
+// }
+function cfgBody(x, cfg) {
+    return cfgEdges(x, cfg);
+}
+
+function cfgConditionalHandler(di, node, label, res, cfg) {
+    if (di == null) {
+        res.push({node: node.n, label: label});
+        return;
+    }
+    if (isNonConditional(di)) {
+        res.push({node: di.n, label: ''});
+    }
+    else {
+        res.push(...cfgConditional(di, cfg));
+    }
+}
+
+function cfgConditional(x, cfg) {
+    if (isIfStatement(x))
+        return cfgIf(x, cfg);
+    return cfgWhile(x, cfg);
+}
+
+function cfgWhile(x, cfg) {
+    let res = [];
+    addEdgeNodes(x, x.body[0], 'T', cfg);
+    let body = cfgBody(bodyWrapper(x.body), cfg);
+    cfgConditionalHandler(body, x, 'while', res, cfg);
+    res.forEach(n => {
+        console.log(n);
+        addEdge(n.node, x.n, n.label + '\nwhile', cfg);
     });
-    return prev;
+    res.length = 0;
+    res.push({node: x.n, label: 'F'});
+    return res;
+}
+
+function addEdgeNodes(fromNode, tillNode, label, cfg) {
+    if (fromNode != null && tillNode != null) cfg.edges += '\n' + fromNode.n + '->' + tillNode.n + '[label="' + label + '"]';
+}
+
+function addEdge(from, till, label, cfg) {
+    cfg.edges += '\n' + from + '->' + till + '[label="' + label + '"]';
+}
+
+function cfgIf(x, cfg) {
+    let ditBody = x.body.filter(x => x.key === 'consequent');
+    let difBody = x.body.filter(x => x.key === 'alternate');
+    addEdgeNodes(x, ditBody[0], 'T', cfg);
+    addEdgeNodes(x, difBody[0], 'F', cfg);
+    let dit = cfgBody(bodyWrapper(ditBody), cfg);
+    let dif = cfgBody(bodyWrapper(difBody), cfg);
+    let res = [];
+    cfgConditionalHandler(dit, x, 'T', res, cfg);
+    cfgConditionalHandler(dif, x, 'F', res, cfg);
+
+    return res;
+}
+
+function cfgEdge(x, cfg) {
+    if (isNonConditional(x)) {
+        return [{node: x.n, label: ''}];
+    }
+    else return cfgConditional(x, cfg);
+    return [];
+}
+
+function cfgEdges(functionNode, cfg) {
+    let nodes = [];
+    let body = functionNode.body;
+    for (let i = 0; i < body.length - 1; i++) {
+        nodes = cfgEdge(body[i], cfg);
+        nodes.forEach(l => cfg.edges += '\n' + l.node + '->' + body[i + 1].n + '[label="' + l.label + '"]');
+    }
+    return body[body.length - 1];
 }
 
 function make_cfg(functionNode) {
